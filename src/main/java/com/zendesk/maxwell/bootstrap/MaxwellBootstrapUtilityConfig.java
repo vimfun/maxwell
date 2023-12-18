@@ -25,6 +25,7 @@ public class MaxwellBootstrapUtilityConfig extends AbstractConfig {
 	public String  log_level;
 	public String  clientID;
 	public String  comment;
+	public boolean monitorNeeded = false;
 
 	public Long    abortBootstrapID;
 	public Long    monitorBootstrapID;
@@ -191,6 +192,10 @@ public class MaxwellBootstrapUtilityConfig extends AbstractConfig {
 
 		if ( options.has("comment") )
 			this.comment = (String) options.valueOf("comment");
+
+		if ( options.has("monitor_needed") ) {
+			this.monitorNeeded = true;
+		}
 	}
 
 	private Properties parseFile(String filename, boolean abortOnMissing) {

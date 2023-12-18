@@ -57,6 +57,8 @@ public class MaxwellBootstrapUtility {
 				rowId = insertBootstrapStartRow(connection, config.databaseName, config.tableName, config.whereClause, config.clientID, config.comment, totalRows);
 			}
 
+			if (!config.monitorNeeded) return;
+
 			try {
 				monitorProgress(connection, rowId);
 			} catch ( MissingBootstrapRowException e ) {
