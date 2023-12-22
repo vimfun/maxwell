@@ -84,10 +84,21 @@ public class MaxwellBootstrapUtility {
 		}
 	}
 
+	static {
+		Logging.setLevel("info");
+	}
+
+	@SneakyThrows
+	public static void run() {
+		System.out.println("hello world before LOGGER");
+		LOGGER.info("hello world");
+		System.out.println("hello world after LOGGER");
+	}
 	@SneakyThrows
 	public static void run(String config_json) {
 		ObjectMapper mapper = new ObjectMapper();
 		MaxwellBootstrapUtilityConfig config = mapper.readValue(config_json, MaxwellBootstrapUtilityConfig.class);
+		LOGGER.info(mapper.writeValueAsString(config.mysql));
 		MaxwellBootstrapUtility util = new MaxwellBootstrapUtility();
 		util.run(config);
 	}
@@ -99,8 +110,12 @@ public class MaxwellBootstrapUtility {
 			Logging.setLevel(config.log_level);
 		}
 
+		LOGGER.error("connectionPool: starting");
 		ConnectionPool connectionPool = getConnectionPool(config);
+		LOGGER.error("connectionPool: started");
+		LOGGER.error("replConnectionPool: starting");
 		ConnectionPool replConnectionPool = getReplicationConnectionPool(config);
+		LOGGER.error("replConnectionPool: started");
 		try ( final Connection connection = connectionPool.getConnection();
 			  final Connection replicationConnection = replConnectionPool.getConnection() ) {
 			if ( config.abortBootstrapID != null ) {
@@ -108,23 +123,25 @@ public class MaxwellBootstrapUtility {
 				removeBootstrapRow(connection, config.abortBootstrapID);
 				return;
 			}
+			LOGGER.error("not abort bootstrap");
 
 			long rowId;
 			if ( config.monitorBootstrapID != null ) {
 				getInsertedRowsCount(connection, config.monitorBootstrapID);
 				rowId = config.monitorBootstrapID;
+				try {
+					monitorProgress(connection, rowId);
+				} catch ( MissingBootstrapRowException e ) {
+					LOGGER.error("bootstrap aborted.");
+					Runtime.getRuntime().halt(1);
+				}
 			} else {
+				LOGGER.error("not monitor bootstrap");
+				LOGGER.error("calcullating `totalRows`");
 				Long totalRows = calculateRowCount(replicationConnection, config.databaseName, config.tableName, config.whereClause);
+				LOGGER.error("`totalRows`: " + totalRows);
 				rowId = insertBootstrapStartRow(connection, config.databaseName, config.tableName, config.whereClause, config.clientID, config.comment, totalRows);
-			}
-
-			if (!config.monitorNeeded) return;
-
-			try {
-				monitorProgress(connection, rowId);
-			} catch ( MissingBootstrapRowException e ) {
-				LOGGER.error("bootstrap aborted.");
-				Runtime.getRuntime().halt(1);
+				LOGGER.error("`rowId`: " + rowId);
 			}
 
 		} catch ( SQLException e ) {
@@ -215,7 +232,7 @@ public class MaxwellBootstrapUtility {
 
 	private Long getTotalRowCount(Connection connection, Long bootstrapRowID) throws SQLException, MissingBootstrapRowException {
 		try ( Statement stmt = connection.createStatement();
-		      ResultSet resultSet = stmt.executeQuery("select total_rows from `bootstrap` where id = " + bootstrapRowID) ) {
+			  ResultSet resultSet = stmt.executeQuery("select total_rows from `bootstrap` where id = " + bootstrapRowID) ) {
 			if ( resultSet.next() ) {
 				return resultSet.getLong(1);
 			} else {
