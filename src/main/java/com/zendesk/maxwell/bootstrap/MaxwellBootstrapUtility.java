@@ -1,8 +1,10 @@
 package com.zendesk.maxwell.bootstrap;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zendesk.maxwell.util.C3P0ConnectionPool;
 import com.zendesk.maxwell.util.Logging;
 import com.zendesk.maxwell.util.ConnectionPool;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +35,15 @@ public class MaxwellBootstrapUtility {
 
 	private void run(String[] argv) throws Exception {
 		MaxwellBootstrapUtilityConfig config = new MaxwellBootstrapUtilityConfig(argv);
-
+		ObjectMapper mapper = new ObjectMapper();
+		String config_json = mapper.writeValueAsString(config);
+		System.out.println("[" );
+		System.out.println(config_json + ",");
+		MaxwellBootstrapUtilityConfig config1 = mapper.readValue(config_json, MaxwellBootstrapUtilityConfig.class);
+		String config_json1 = mapper.writeValueAsString(config1);
+		System.out.println(config_json1 + ",");
+		MaxwellBootstrapUtilityConfig config2 = mapper.readValue(config_json1, MaxwellBootstrapUtilityConfig.class);
+		System.out.println(mapper.writeValueAsString(config2)+ "]");
 		if ( config.log_level != null ) {
 			Logging.setLevel(config.log_level);
 		}
@@ -74,6 +84,56 @@ public class MaxwellBootstrapUtility {
 		}
 	}
 
+	@SneakyThrows
+	public static void run(String config_json) {
+		ObjectMapper mapper = new ObjectMapper();
+		MaxwellBootstrapUtilityConfig config = mapper.readValue(config_json, MaxwellBootstrapUtilityConfig.class);
+		MaxwellBootstrapUtility util = new MaxwellBootstrapUtility();
+		util.run(config);
+	}
+
+	@SneakyThrows
+	public void run(MaxwellBootstrapUtilityConfig config) {
+
+		if ( config.log_level != null ) {
+			Logging.setLevel(config.log_level);
+		}
+
+		ConnectionPool connectionPool = getConnectionPool(config);
+		ConnectionPool replConnectionPool = getReplicationConnectionPool(config);
+		try ( final Connection connection = connectionPool.getConnection();
+			  final Connection replicationConnection = replConnectionPool.getConnection() ) {
+			if ( config.abortBootstrapID != null ) {
+				getInsertedRowsCount(connection, config.abortBootstrapID);
+				removeBootstrapRow(connection, config.abortBootstrapID);
+				return;
+			}
+
+			long rowId;
+			if ( config.monitorBootstrapID != null ) {
+				getInsertedRowsCount(connection, config.monitorBootstrapID);
+				rowId = config.monitorBootstrapID;
+			} else {
+				Long totalRows = calculateRowCount(replicationConnection, config.databaseName, config.tableName, config.whereClause);
+				rowId = insertBootstrapStartRow(connection, config.databaseName, config.tableName, config.whereClause, config.clientID, config.comment, totalRows);
+			}
+
+			if (!config.monitorNeeded) return;
+
+			try {
+				monitorProgress(connection, rowId);
+			} catch ( MissingBootstrapRowException e ) {
+				LOGGER.error("bootstrap aborted.");
+				Runtime.getRuntime().halt(1);
+			}
+
+		} catch ( SQLException e ) {
+			LOGGER.error("failed to connect to mysql server @ " + config.getConnectionURI());
+			LOGGER.error(e.getLocalizedMessage());
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
 
 	private void monitorProgress(Connection connection, Long rowId) throws SQLException, MissingBootstrapRowException {
 		addMonitorShutdownHook(rowId);

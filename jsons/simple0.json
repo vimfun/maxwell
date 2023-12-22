@@ -1,0 +1,42 @@
+{
+  "mysql": {
+    "host": "10.103.6.172",
+    "port": 3306,
+    "database": null,
+    "user": "examuser",
+    "password": "De17_eX02",
+    "sslMode": null,
+    "enableHeartbeat": false,
+    "jdbcOptions": {
+      "allowPublicKeyRetrieval": "true",
+      "connectTimeout": "5000",
+      "zeroDateTimeBehavior": "convertToNull"
+    },
+    "connectTimeoutMS": 5000
+  },
+  "replicationMysql": {
+    "host": "10.103.6.172",
+    "port": 3306,
+    "database": null,
+    "user": "examuser",
+    "password": "De17_eX02",
+    "sslMode": null,
+    "enableHeartbeat": false,
+    "jdbcOptions": {
+      "allowPublicKeyRetrieval": "true",
+      "connectTimeout": "5000",
+      "zeroDateTimeBehavior": "convertToNull"
+    },
+    "connectTimeoutMS": 5000
+  },
+  "databaseName": "rs_test",
+  "schemaDatabaseName": "maxwell",
+  "tableName": "rs_rate_score_item_567",
+  "whereClause": null,
+  "log_level": "debug",
+  "clientID": "c99",
+  "comment": null,
+  "monitorNeeded": false,
+  "abortBootstrapID": null,
+  "monitorBootstrapID": null
+}

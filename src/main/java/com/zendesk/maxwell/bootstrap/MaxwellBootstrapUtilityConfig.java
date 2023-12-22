@@ -29,12 +29,14 @@ public class MaxwellBootstrapUtilityConfig extends AbstractConfig {
 
 	public Long    abortBootstrapID;
 	public Long    monitorBootstrapID;
+	public MaxwellBootstrapUtilityConfig() {}
 
 	public MaxwellBootstrapUtilityConfig(String argv[]) {
 		this.parse(argv);
 		this.setDefaults();
 	}
 
+	public void setConnectionURI(String s) {}
 
 	public String getConnectionURI() {
 		try {
@@ -44,6 +46,8 @@ public class MaxwellBootstrapUtilityConfig extends AbstractConfig {
 			throw new RuntimeException("Unable to generate bootstrap's jdbc connection URI", e);
 		}
 	}
+
+	public void setReplicationConnectionURI(String s) {}
 
 	public String getReplicationConnectionURI( ) {
 		try {

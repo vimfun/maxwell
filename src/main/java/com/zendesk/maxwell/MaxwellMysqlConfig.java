@@ -162,6 +162,8 @@ public class MaxwellMysqlConfig {
 		return uriBuilder.build().toString();
 	}
 
+	public void setConnectionURI(String s) {}
+
 	/**
 	 * Build a connection URI from the config
 	 * @return a connection URI
