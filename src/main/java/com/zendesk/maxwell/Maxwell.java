@@ -1,8 +1,12 @@
 package com.zendesk.maxwell;
 
 import com.djdch.log4j.StaticShutdownCallbackRegistry;
+import com.fasterxml.jackson.annotation.JsonIgnoreType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.github.shyiko.mysql.binlog.network.ServerException;
 import com.zendesk.maxwell.bootstrap.BootstrapController;
+import com.zendesk.maxwell.bootstrap.MaxwellBootstrapUtilityConfig;
 import com.zendesk.maxwell.producer.AbstractProducer;
 import com.zendesk.maxwell.recovery.Recovery;
 import com.zendesk.maxwell.recovery.RecoveryInfo;
@@ -15,6 +19,7 @@ import com.zendesk.maxwell.schema.columndef.ColumnDefCastException;
 import com.zendesk.maxwell.util.Logging;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 
 import java.net.URISyntaxException;
 import java.sql.Connection;
@@ -305,6 +310,8 @@ public class Maxwell implements Runnable {
 		}
 	}
 
+	@JsonIgnoreType
+	public class MyMixInForIgnoreType {}
 
 	/**
 	 * The main entry point for Maxwell
@@ -314,6 +321,14 @@ public class Maxwell implements Runnable {
 		try {
 			Logging.setupLogBridging();
 			MaxwellConfig config = new MaxwellConfig(args);
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.addMixIn(Duration.class, MyMixInForIgnoreType.class);
+			String cfgStr = mapper.writeValueAsString(config);
+			MaxwellConfig config1 = mapper.readValue(cfgStr, MaxwellConfig.class);
+			String cfgStr1 = mapper.writeValueAsString(config1);
+			MaxwellConfig config2 = mapper.readValue(cfgStr1, MaxwellConfig.class);
+			String cfgStr2 = mapper.writeValueAsString(config2);
+			System.out.printf("[%s, %s, %s]\n", cfgStr, cfgStr1, cfgStr2);
 
 			if ( config.log_level != null ) {
 				Logging.setLevel(config.log_level);

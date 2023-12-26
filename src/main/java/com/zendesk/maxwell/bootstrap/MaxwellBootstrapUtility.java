@@ -102,8 +102,6 @@ public class MaxwellBootstrapUtility {
 			LOGGER.error("failed to connect to mysql server @ " + config.getConnectionURI());
 			LOGGER.error(e.getLocalizedMessage());
 			e.printStackTrace();
-			// TODO: 是不是需要在出现连接异常时关闭整个进程呢？
-			System.exit(1);
 		} finally {
 			connectionPool.release();
 			replConnectionPool.release();
